@@ -1,0 +1,109 @@
+# Codex README - SPK Laundry Profile Matching
+
+## Tujuan proyek
+Aplikasi web ini dibuat untuk tugas mata kuliah Sistem Pendukung Keputusan dengan studi kasus penentuan tempat laundry oleh mahasiswa menggunakan metode Profile Matching.
+
+Output utama:
+- `index.html` sebagai struktur halaman.
+- `style.css` sebagai tampilan UI.
+- `script.js` sebagai logika perhitungan Profile Matching.
+
+Tidak memakai framework, database, atau library eksternal. Semua berjalan di browser.
+
+## Struktur file
+```
+spk-laundry-profile-matching-web/
+├── index.html
+├── style.css
+├── script.js
+├── codex.readme
+└── ui.readme
+```
+
+## Dasar data
+Kriteria mengikuti laporan SPK Laundry:
+- C1 Harga per Kg, Cost, Secondary Factor, bobot 10%, ideal 5.
+- C2 Kecepatan Pengerjaan, Benefit, Core Factor, bobot 20%, ideal 5.
+- C3 Kualitas Cucian, Benefit, Core Factor, bobot 15%, ideal 5.
+- C4 Jarak dari Kos/Kampus, Cost, Secondary Factor, bobot 10%, ideal 5.
+- C5 Pelayanan & Respons, Benefit, Core Factor, bobot 25%, ideal 5.
+- C6 Tingkat Kesalahan, Cost, Secondary Factor, bobot 20%, ideal 5.
+
+Alternatif awal mengikuti daftar 15 laundry di laporan:
+A1 sampai A15. Nilai alternatif dibuat sebagai data dummy awal dan bisa diedit langsung di tabel.
+
+Catatan penting:
+- Kolom Cost sudah dikonversi ke skala 1-5, sehingga nilai 5 tetap berarti paling ideal.
+- Contoh: C1 Harga per Kg bernilai 5 berarti harga paling murah, bukan paling mahal.
+- Contoh: C6 Tingkat Kesalahan bernilai 5 berarti tidak pernah ada kesalahan.
+
+## Logika Profile Matching
+Logika utama ada di `script.js`.
+
+### 1. Hitung GAP
+```
+GAP = nilai_alternatif - nilai_ideal
+```
+Karena profil ideal semua kriteria bernilai 5, maka alternatif dengan nilai 5 memiliki GAP 0.
+
+### 2. Konversi GAP ke bobot
+Tabel bobot GAP yang dipakai:
+```
+GAP  0  -> 5
+GAP  1  -> 4.5
+GAP -1  -> 4
+GAP  2  -> 3.5
+GAP -2  -> 3
+GAP  3  -> 2.5
+GAP -3  -> 2
+GAP  4  -> 1.5
+GAP -4  -> 1
+```
+
+Dalam kasus ini nilai alternatif 1-5 dan ideal 5, sehingga GAP yang umum muncul adalah 0 sampai -4.
+
+### 3. Hitung Core Factor dan Secondary Factor
+Core Factor:
+- C2 Kecepatan Pengerjaan
+- C3 Kualitas Cucian
+- C5 Pelayanan & Respons
+
+Secondary Factor:
+- C1 Harga per Kg
+- C4 Jarak dari Kos/Kampus
+- C6 Tingkat Kesalahan
+
+Aplikasi memakai rata-rata berbobot berdasarkan bobot kriteria di laporan:
+```
+NCF = jumlah(bobot_gap_core * bobot_kriteria_core) / jumlah(bobot_kriteria_core)
+NSF = jumlah(bobot_gap_secondary * bobot_kriteria_secondary) / jumlah(bobot_kriteria_secondary)
+```
+
+### 4. Hitung nilai akhir
+```
+Nilai Akhir = (60% * NCF) + (40% * NSF)
+```
+
+### 5. Ranking
+Alternatif diurutkan dari nilai akhir terbesar ke terkecil. Jika nilai akhir sama, aplikasi memakai NCF sebagai tie breaker, lalu NSF.
+
+## Fitur aplikasi
+- Edit nilai alternatif langsung dari tabel.
+- Tambah alternatif laundry baru.
+- Hapus alternatif.
+- Ranking otomatis saat data berubah.
+- Detail GAP untuk setiap alternatif.
+- Export hasil ranking ke CSV.
+- Penyimpanan data sementara memakai `localStorage` browser.
+
+## Cara menjalankan
+1. Buka folder proyek.
+2. Klik dua kali `index.html`, atau buka lewat Live Server di VS Code.
+3. Ubah nilai pada tabel jika diperlukan.
+4. Klik `Hitung Ranking` atau lihat ranking otomatis.
+
+## Catatan untuk pengembangan berikutnya
+- Jika ingin memakai data asli laundry, ganti array `defaultAlternatives` pada `script.js`.
+- Jika ingin bobot kriteria berubah, ubah nilai `criterionWeight` pada array `criteria`.
+- Jika ingin profil ideal berubah, ubah properti `ideal` pada setiap kriteria.
+- Jika ingin menambah database, pertahankan fungsi `calculateAlternative()` sebagai pusat logika perhitungan.

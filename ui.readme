@@ -1,0 +1,75 @@
+# UI README - SPK Laundry Profile Matching
+
+## Konsep tampilan
+UI dibuat seperti dashboard SPK modern agar mudah dipresentasikan di kelas. Fokusnya adalah:
+- Cepat memahami metode.
+- Cepat mengubah data alternatif.
+- Cepat melihat ranking dan detail perhitungan.
+
+## Struktur halaman
+1. Hero Section
+   - Judul aplikasi.
+   - Ringkasan metode Profile Matching.
+   - Tombol Hitung Ranking dan Reset Data.
+   - Kartu rekomendasi teratas.
+
+2. Statistik
+   - Jumlah alternatif.
+   - Jumlah kriteria.
+   - Nilai profil ideal.
+   - Jumlah responden survei.
+
+3. Dasar Perhitungan
+   - Alur 4 langkah: GAP, bobot GAP, CF/SF, ranking.
+
+4. Kriteria dan Survei
+   - Kartu Core Factor dan Secondary Factor.
+   - Ringkasan rata-rata preferensi responden.
+
+5. Input Data Alternatif
+   - Tabel nilai 15 laundry.
+   - Dropdown nilai 1-5 untuk setiap kriteria.
+   - Input tambah laundry.
+   - Tombol hapus alternatif.
+
+6. Hasil Ranking
+   - Tabel ranking.
+   - Nilai NCF, NSF, dan nilai akhir.
+   - Bar visual untuk nilai akhir.
+   - Detail GAP di sisi kanan.
+
+7. Tabel Konversi GAP
+   - Menampilkan pasangan nilai GAP dan bobotnya.
+
+## Gaya visual
+- Warna utama: biru untuk SPK/keputusan.
+- Warna pendukung: hijau toska untuk kesan bersih dan laundry.
+- Background: putih kebiruan agar terasa ringan.
+- Kartu memakai radius besar dan shadow lembut agar tampak modern.
+
+## Responsif
+- Desktop: layout dua kolom untuk hero, kriteria/survei, dan ranking/detail.
+- Tablet: beberapa grid turun menjadi dua kolom.
+- Mobile: semua section menjadi satu kolom, tombol melebar penuh, tabel bisa digeser horizontal.
+
+## Komponen penting
+- `.hero`: pembuka halaman.
+- `.section-card`: kartu utama setiap section.
+- `.data-table`: tabel input dan ranking.
+- `.detail-card`: detail perhitungan alternatif terpilih.
+- `.bar` dan `.bar-fill`: visualisasi nilai.
+- `.badge`: label kriteria, factor, dan nilai.
+- `.toast`: notifikasi aksi user.
+
+## Prinsip UX
+- User tidak perlu pindah halaman.
+- Ranking langsung berubah setelah nilai diubah.
+- Detail perhitungan bisa dilihat dengan klik baris ranking.
+- Tabel input tetap sederhana supaya cocok untuk tugas kuliah dan demo presentasi.
+- Export CSV tersedia untuk menyimpan hasil akhir.
+
+## Aksesibilitas
+- Memakai struktur heading yang rapi.
+- Tombol dan input memiliki label atau aria-label.
+- Warna teks dibuat kontras dengan background.
+- Tabel memiliki heading yang jelas.
