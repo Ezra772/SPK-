@@ -235,6 +235,7 @@ main { padding: clamp(24px, 4vw, 40px) 0 clamp(48px, 8vw, 80px); background: var
 }
 .section-heading { margin-bottom: 40px; }
 .section-heading.with-actions { display: flex; justify-content: space-between; align-items: flex-end; }
+.heading-actions { display: flex; flex-direction: column; gap: 12px; align-items: flex-end; }
 .section-heading.compact { margin-bottom: 32px; }
 .section-heading h2 { font-size: 32px; font-weight: 800; color: var(--ink); margin-top: 8px; letter-spacing: -0.02em; }
 .section-heading p.muted { margin-top: 12px; font-size: 16px; font-weight: 500; max-width: 600px; }
@@ -372,6 +373,7 @@ main { padding: clamp(24px, 4vw, 40px) 0 clamp(48px, 8vw, 80px); background: var
   .nav-actions a:last-child { border-bottom: 0; }
   .hero-grid { gap: 40px; }
   .section-heading.with-actions { flex-direction: column; align-items: flex-start; gap: 20px; }
+  .heading-actions { align-items: flex-start; width: 100%; }
   .add-box { width: 100%; min-width: unset; }
   .section-heading h2 { font-size: clamp(22px, 5vw, 32px); }
 }
@@ -388,7 +390,7 @@ main { padding: clamp(24px, 4vw, 40px) 0 clamp(48px, 8vw, 80px); background: var
 @media (max-width: 480px) {
   .stats-grid { grid-template-columns: 1fr 1fr; }
   .cta-row { flex-direction: column; }
-  .cta-row .btn { width: 100%; justify-content: center; }
+  .cta-row .btn, .heading-actions .btn { width: 100%; justify-content: center; }
   .navbar { height: 64px; }
   .brand h1 { font-size: 15px; }
   .section-card { border-radius: 16px; }
