@@ -25,7 +25,6 @@ Kriteria mengikuti laporan SPK Laundry:
 - C1 Harga per Kg, Cost, Secondary Factor, bobot 10%, ideal 5.
 - C2 Kecepatan Pengerjaan, Benefit, Core Factor, bobot 20%, ideal 5.
 - C3 Kualitas Cucian, Benefit, Core Factor, bobot 15%, ideal 5.
-- C4 Jarak dari Kos/Kampus, Cost, Secondary Factor, bobot 10%, ideal 5.
 - C5 Pelayanan & Respons, Benefit, Core Factor, bobot 25%, ideal 5.
 - C6 Tingkat Kesalahan, Cost, Secondary Factor, bobot 20%, ideal 5.
 
@@ -70,7 +69,6 @@ Core Factor:
 
 Secondary Factor:
 - C1 Harga per Kg
-- C4 Jarak dari Kos/Kampus
 - C6 Tingkat Kesalahan
 
 Aplikasi memakai rata-rata berbobot berdasarkan bobot kriteria di laporan:

@@ -29,15 +29,6 @@ const criteria = [
     note: "Nilai 5 berarti cucian sangat bersih, wangi tahan lama, dan rapi."
   },
   {
-    id: "C4",
-    name: "Jarak dari Kos/Kampus",
-    type: "Cost",
-    factor: "secondary",
-    criterionWeight: 10,
-    ideal: 5,
-    note: "Nilai 5 berarti lokasi sangat dekat, <= 200 meter."
-  },
-  {
     id: "C5",
     name: "Pelayanan & Respons",
     type: "Benefit",
@@ -81,17 +72,16 @@ const surveySummary = [
   { id: "C1", average: 4.23, dominant: 4, label: "Harga per Kilogram" },
   { id: "C2", average: 4.32, dominant: 4, label: "Kecepatan Pengerjaan" },
   { id: "C3", average: 4.52, dominant: 5, label: "Kualitas Hasil Cucian" },
-  { id: "C4", average: 4.05, dominant: 4, label: "Jarak dari Tempat Tinggal" },
   { id: "C5", average: 4.55, dominant: 5, label: "Pelayanan dan Respons" },
   { id: "C6", average: 4.36, dominant: 4, label: "Tingkat Kerusakan atau Kesalahan" }
 ];
 
 const defaultAlternatives = [
-  { id: "A1", name: "Laundry family", scores: { C1: 4, C2: 4, C3: 5, C4: 3, C5: 4, C6: 4 } },
-  { id: "A2", name: "Lore laundry", scores: { C1: 3, C2: 5, C3: 4, C4: 4, C5: 4, C6: 3 } },
-  { id: "A3", name: "Monica Laundry", scores: { C1: 3, C2: 4, C3: 4, C4: 3, C5: 4, C6: 4 } },
-  { id: "A4", name: "Hanif Laundry", scores: { C1: 5, C2: 3, C3: 3, C4: 5, C5: 3, C6: 3 } },
-  { id: "A5", name: "Salma laundry", scores: { C1: 3, C2: 5, C3: 4, C4: 3, C5: 5, C6: 4 } }
+  { id: "A1", name: "Laundry family", scores: { C1: 4, C2: 4, C3: 5, C5: 4, C6: 4 } },
+  { id: "A2", name: "Lore laundry", scores: { C1: 3, C2: 5, C3: 4, C5: 4, C6: 3 } },
+  { id: "A3", name: "Monica Laundry", scores: { C1: 3, C2: 4, C3: 4, C5: 4, C6: 4 } },
+  { id: "A4", name: "Hanif Laundry", scores: { C1: 5, C2: 3, C3: 3, C5: 3, C6: 3 } },
+  { id: "A5", name: "Salma laundry", scores: { C1: 3, C2: 5, C3: 4, C5: 5, C6: 4 } }
 ];
 
 let alternatives = loadAlternatives();
