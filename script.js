@@ -1,502 +1,804 @@
-const STORAGE_KEY = "spk_laundry_profile_matching_v2";
+/* ============================================================
+   SPK LAUNDRY — PROFILE MATCHING
+   Metode: Profile Matching (NCF 60% + NSF 40%)
+   Penulis: Script yang diperbaiki sesuai logika Profile Matching
+   ============================================================ */
+
+/* ============================================================
+   DATA — Kriteria
+   ============================================================ */
 
 const criteria = [
   {
     id: "C1",
-    name: "Harga per Kg",
+    name: "Harga per Kilogram",
     type: "Cost",
-    factor: "secondary",
-    criterionWeight: 10,
+    factor: "core",
     ideal: 5,
-    note: "Nilai 5 berarti harga paling murah, yaitu <= Rp 4.000/kg."
+    note: "Harga sudah dikonversi ke skala 1–5. Nilai 5 = harga paling murah (terbaik)."
   },
   {
     id: "C2",
     name: "Kecepatan Pengerjaan",
     type: "Benefit",
     factor: "core",
-    criterionWeight: 20,
     ideal: 5,
-    note: "Nilai 5 berarti pengerjaan sangat cepat, kurang dari 4 jam."
+    note: "Semakin cepat proses pengerjaan, semakin tinggi nilainya."
   },
   {
     id: "C3",
-    name: "Kualitas Cucian",
+    name: "Kualitas Hasil Cucian",
     type: "Benefit",
-    factor: "core",
-    criterionWeight: 15,
+    factor: "secondary",
     ideal: 5,
-    note: "Nilai 5 berarti cucian sangat bersih, wangi tahan lama, dan rapi."
+    note: "Menilai kebersihan, kerapian, dan keharuman hasil cucian."
+  },
+  {
+    id: "C4",
+    name: "Pelayanan dan Respons",
+    type: "Benefit",
+    factor: "secondary",
+    ideal: 5,
+    note: "Menilai keramahan dan kecepatan respons pihak laundry."
   },
   {
     id: "C5",
-    name: "Pelayanan & Respons",
-    type: "Benefit",
-    factor: "core",
-    criterionWeight: 25,
-    ideal: 5,
-    note: "Nilai 5 berarti staff sangat ramah, respons real-time, dan ada garansi."
-  },
-  {
-    id: "C6",
-    name: "Tingkat Kesalahan",
+    name: "Tingkat Kerusakan atau Kesalahan",
     type: "Cost",
-    factor: "secondary",
-    criterionWeight: 20,
+    factor: "core",
     ideal: 5,
-    note: "Nilai 5 berarti tidak pernah ada kesalahan pakaian hilang, tertukar, atau rusak."
+    note: "Nilai 5 berarti tidak terjadi kerusakan, kehilangan, atau tertukar (terbaik)."
   }
 ];
+
+/* ============================================================
+   TABEL KONVERSI GAP
+   ============================================================ */
 
 const gapWeights = {
-  "0": 5,
-  "1": 4.5,
-  "-1": 4,
-  "2": 3.5,
-  "-2": 3,
-  "3": 2.5,
-  "-3": 2,
-  "4": 1.5,
-  "-4": 1
+  "0":   5,
+  "1":   4.5,
+  "-1":  4,
+  "2":   3.5,
+  "-2":  3,
+  "3":   2.5,
+  "-3":  2,
+  "4":   1.5,
+  "-4":  1
 };
 
-const factorWeights = {
-  core: 0.6,
-  secondary: 0.4
-};
-
-const scoreValues = [1, 2, 3, 4, 5];
 const orderedGaps = [0, 1, -1, 2, -2, 3, -3, 4, -4];
 
+/* ============================================================
+   DATA — Alternatif
+   Sumber: Survey_Alternatif_Laundry-2(1).xlsx
+   ============================================================ */
+
+const alternatives = [
+  {
+    id: "A1",
+    name: "Laundry Family",
+    scores: { C1: 4, C2: 4, C3: 3, C4: 4, C5: 4 }
+  },
+  {
+    id: "A2",
+    name: "Lore Laundry",
+    scores: { C1: 4, C2: 3, C3: 3, C4: 4, C5: 3 }
+  },
+  {
+    id: "A3",
+    name: "Monica Laundry",
+    scores: { C1: 5, C2: 4, C3: 4, C4: 4, C5: 5 }
+  },
+  {
+    id: "A4",
+    name: "Hanif Laundry",
+    scores: { C1: 4, C2: 3, C3: 3, C4: 2, C5: 3 }
+  },
+  {
+    id: "A5",
+    name: "Salma Laundry",
+    scores: { C1: 4, C2: 4, C3: 4, C4: 4, C5: 4 }
+  }
+];
+
+/* ============================================================
+   DATA — Survei
+   ============================================================ */
+
 const surveySummary = [
-  { id: "C1", average: 4.23, dominant: 4, label: "Harga per Kilogram" },
-  { id: "C2", average: 4.32, dominant: 4, label: "Kecepatan Pengerjaan" },
-  { id: "C3", average: 4.52, dominant: 5, label: "Kualitas Hasil Cucian" },
-  { id: "C5", average: 4.55, dominant: 5, label: "Pelayanan dan Respons" },
-  { id: "C6", average: 4.36, dominant: 4, label: "Tingkat Kerusakan atau Kesalahan" }
+  { id: "C1", label: "Harga per Kilogram",              average: 4.10, dominant: 4, total: 40, percentage: 63 },
+  { id: "C2", label: "Kecepatan Pengerjaan",             average: 3.60, dominant: 4, total: 40, percentage: 57 },
+  { id: "C3", label: "Kualitas Hasil Cucian",            average: 3.35, dominant: 3, total: 40, percentage: 40 },
+  { id: "C4", label: "Pelayanan dan Respons",            average: 3.75, dominant: 4, total: 40, percentage: 43 },
+  { id: "C5", label: "Tingkat Kerusakan atau Kesalahan", average: 3.68, dominant: 4, total: 40, percentage: 70 }
 ];
 
-const defaultAlternatives = [
-  { id: "A1", name: "Laundry family", scores: { C1: 4, C2: 4, C3: 5, C5: 4, C6: 4 } },
-  { id: "A2", name: "Lore laundry", scores: { C1: 3, C2: 5, C3: 4, C5: 4, C6: 3 } },
-  { id: "A3", name: "Monica Laundry", scores: { C1: 3, C2: 4, C3: 4, C5: 4, C6: 4 } },
-  { id: "A4", name: "Hanif Laundry", scores: { C1: 5, C2: 3, C3: 3, C5: 3, C6: 3 } },
-  { id: "A5", name: "Salma laundry", scores: { C1: 3, C2: 5, C3: 4, C5: 5, C6: 4 } }
-];
+/* ============================================================
+   SIMULATOR BOBOT — State
+   Slider C1, C2, C5 = bobot relatif di dalam kelompok Core Factor.
+   Slider C3, C4     = bobot relatif di dalam kelompok Secondary Factor.
+   Normalisasi dilakukan per kelompok, bukan global.
+   ============================================================ */
 
-let alternatives = loadAlternatives();
+/**
+ * Default: semua prioritas sama sehingga hasil identik dengan
+ * rata-rata sederhana per kelompok (NCF = avg C1,C2,C5 ; NSF = avg C3,C4).
+ */
+const DEFAULT_WEIGHTS = { C1: 3, C2: 3, C3: 3, C4: 3, C5: 3 };
+
+let criterionWeights = { ...DEFAULT_WEIGHTS };
+
+/* Roman numerals untuk tampilan ranking */
+const ROMAN = ["I", "II", "III", "IV", "V"];
+
 let selectedAlternativeId = null;
 
-const $ = (selector, root = document) => root.querySelector(selector);
+/* ============================================================
+   UTILITIES
+   ============================================================ */
 
-function loadAlternatives() {
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if (!saved) return structuredClone(defaultAlternatives);
-
-  try {
-    const parsed = JSON.parse(saved);
-    if (!Array.isArray(parsed) || parsed.length === 0) throw new Error("Data kosong");
-    return parsed;
-  } catch (error) {
-    console.warn("Gagal membaca localStorage, memakai data default.", error);
-    return structuredClone(defaultAlternatives);
-  }
-}
-
-function saveAlternatives() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(alternatives));
-  $("#stat-alternatives").textContent = alternatives.length;
-}
-
-function findAlternative(id) {
-  return alternatives.find((item) => item.id === id);
-}
-
-function refreshAlternativeViews({ includeTable = false } = {}) {
-  saveAlternatives();
-  if (includeTable) renderAlternativeTable();
-  renderRanking();
-}
+const $ = (selector, parent = document) =>
+  parent.querySelector(selector);
 
 function escapeHTML(value) {
   return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+    .replaceAll("&",  "&amp;")
+    .replaceAll("<",  "&lt;")
+    .replaceAll(">",  "&gt;")
+    .replaceAll('"',  "&quot;")
+    .replaceAll("'",  "&#039;");
 }
 
 function formatNumber(value) {
   return Number(value).toFixed(2);
 }
 
+/* ============================================================
+   VALIDASI
+   ============================================================ */
+
+/**
+ * Validasi nilai alternatif.
+ * @param {number} score – nilai mentah
+ * @param {string} criterionId – ID kriteria untuk pesan error
+ * @param {string} alternativeName – nama alternatif untuk pesan error
+ * @returns {number} nilai yang sudah tervalidasi
+ * @throws {Error} jika nilai tidak valid
+ */
+function validateAlternativeScore(score, criterionId, alternativeName) {
+  const n = Number(score);
+  if (isNaN(n) || !isFinite(n)) {
+    throw new Error(
+      `Nilai ${criterionId} pada "${alternativeName}" bukan angka yang valid (${score}).`
+    );
+  }
+  if (n < 1 || n > 5) {
+    throw new Error(
+      `Nilai ${criterionId} pada "${alternativeName}" harus antara 1–5, ditemukan: ${n}.`
+    );
+  }
+  return n;
+}
+
+/**
+ * Validasi profil ideal kriteria.
+ * @param {object} criterion
+ * @throws {Error}
+ */
+function validateCriteria(criterion) {
+  const ideal = Number(criterion.ideal);
+  if (isNaN(ideal) || ideal < 1 || ideal > 5) {
+    throw new Error(
+      `Profil ideal ${criterion.id} tidak valid: ${criterion.ideal}.`
+    );
+  }
+}
+
+/* ============================================================
+   FUNGSI GAP WEIGHT — dengan penanganan error
+   ============================================================ */
+
+/**
+ * Kembalikan bobot GAP dari tabel konversi.
+ * Melempar Error jika GAP tidak ada di tabel.
+ * @param {number} gap
+ * @returns {number}
+ */
 function getGapWeight(gap) {
-  return gapWeights[String(gap)] ?? 1;
+  const key = String(gap);
+  if (!Object.prototype.hasOwnProperty.call(gapWeights, key)) {
+    throw new Error(
+      `Nilai GAP ${gap} tidak tersedia dalam tabel konversi. ` +
+      `Rentang yang didukung: -4 sampai +4.`
+    );
+  }
+  return gapWeights[key];
 }
 
-function weightedAverage(items, factor) {
-  const filtered = items.filter((item) => item.factor === factor);
-  const totalWeight = filtered.reduce((sum, item) => sum + item.criterionWeight, 0);
-  if (totalWeight === 0) return 0;
-  return filtered.reduce((sum, item) => sum + item.gapWeight * item.criterionWeight, 0) / totalWeight;
+/* ============================================================
+   PERHITUNGAN — calculateWeightedFactor
+   Menghitung NCF atau NSF dari kelompok kriteria dengan
+   bobot relatif yang dinormalisasi per kelompok.
+   ============================================================ */
+
+/**
+ * @param {Array<{id: string, gapWeight: number}>} items
+ *   – daftar detail kriteria dalam satu kelompok (core atau secondary)
+ * @returns {number} nilai rata-rata berbobot kelompok tersebut
+ */
+function calculateWeightedFactor(items) {
+  if (!items.length) return 0;
+
+  /* Jumlah bobot mentah (slider) dari kelompok ini */
+  const totalWeight = items.reduce((total, item) => {
+    const w = criterionWeights[item.id];
+    return total + Math.max(0, isNaN(w) ? 0 : w);
+  }, 0);
+
+  /* Fallback: rata-rata sederhana jika semua bobot = 0 */
+  if (totalWeight === 0) {
+    return items.reduce((total, item) => total + item.gapWeight, 0) / items.length;
+  }
+
+  /* Rata-rata berbobot (bobot dinormalisasi di dalam kelompok) */
+  return items.reduce((total, item) => {
+    const rawWeight     = Math.max(0, isNaN(criterionWeights[item.id]) ? 0 : criterionWeights[item.id]);
+    const normalizedWeight = rawWeight / totalWeight;
+    return total + item.gapWeight * normalizedWeight;
+  }, 0);
 }
 
+/* ============================================================
+   PERHITUNGAN — calculateAlternative
+   ============================================================ */
+
+/**
+ * Hitung semua nilai Profile Matching untuk satu alternatif.
+ * @param {object} alternative
+ * @returns {object} alternatif dengan details, coreScore, secondaryScore, finalScore
+ */
 function calculateAlternative(alternative) {
+  /* Hitung detail per kriteria */
   const details = criteria.map((criterion) => {
-    const score = Number(alternative.scores[criterion.id]) || 1;
-    const gap = score - criterion.ideal;
+    validateCriteria(criterion);
+    const score    = validateAlternativeScore(
+      alternative.scores[criterion.id],
+      criterion.id,
+      alternative.name
+    );
+    const ideal    = Number(criterion.ideal);
+    const gap      = score - ideal;
+    const gapW     = getGapWeight(gap);
+
+    /* Bobot relatif di dalam kelompok — dihitung nanti, disimpan untuk detail */
     return {
-      ...criterion,
+      id:        criterion.id,
+      name:      criterion.name,
+      factor:    criterion.factor,
       score,
+      ideal,
       gap,
-      gapWeight: getGapWeight(gap)
+      gapWeight: gapW
     };
   });
 
-  const coreScore = weightedAverage(details, "core");
-  const secondaryScore = weightedAverage(details, "secondary");
-  const finalScore = coreScore * factorWeights.core + secondaryScore * factorWeights.secondary;
+  /* Pisahkan kelompok */
+  const coreItems      = details.filter(d => d.factor === "core");
+  const secondaryItems = details.filter(d => d.factor === "secondary");
 
-  return {
-    ...alternative,
-    details,
-    coreScore,
-    secondaryScore,
-    finalScore
-  };
+  /* Hitung NCF dan NSF dengan bobot relatif per kelompok */
+  const coreScore      = calculateWeightedFactor(coreItems);
+  const secondaryScore = calculateWeightedFactor(secondaryItems);
+
+  /* Nilai akhir: 60% NCF + 40% NSF */
+  const finalScore = 0.60 * coreScore + 0.40 * secondaryScore;
+
+  /* Hitung bobot relatif untuk setiap detail (untuk tampilan) */
+  const coreTotalW = coreItems.reduce((s, d) => {
+    const w = criterionWeights[d.id];
+    return s + Math.max(0, isNaN(w) ? 0 : w);
+  }, 0);
+  const secTotalW = secondaryItems.reduce((s, d) => {
+    const w = criterionWeights[d.id];
+    return s + Math.max(0, isNaN(w) ? 0 : w);
+  }, 0);
+
+  const enrichedDetails = details.map(d => {
+    const rawW    = Math.max(0, isNaN(criterionWeights[d.id]) ? 0 : criterionWeights[d.id]);
+    const groupTotalW = d.factor === "core" ? coreTotalW : secTotalW;
+    const normW   = groupTotalW === 0 ? (1 / (d.factor === "core" ? coreItems.length : secondaryItems.length)) : rawW / groupTotalW;
+    const contribution = d.gapWeight * normW;
+
+    return { ...d, rawWeight: rawW, groupTotalWeight: groupTotalW, normalizedWeight: normW, contribution };
+  });
+
+  return { ...alternative, details: enrichedDetails, coreScore, secondaryScore, finalScore };
 }
+
+/* ============================================================
+   PERHITUNGAN — calculateRankings
+   ============================================================ */
 
 function calculateRankings() {
-  return alternatives
-    .map(calculateAlternative)
+  const results = [];
+
+  for (const alt of alternatives) {
+    try {
+      results.push(calculateAlternative(alt));
+    } catch (err) {
+      showToast(`Error pada ${alt.name}: ${err.message}`);
+      console.error(`[Profile Matching] Error pada ${alt.name}:`, err);
+    }
+  }
+
+  return results
     .sort((a, b) => {
-      if (b.finalScore !== a.finalScore) return b.finalScore - a.finalScore;
-      if (b.coreScore !== a.coreScore) return b.coreScore - a.coreScore;
-      return b.secondaryScore - a.secondaryScore;
+      if (Math.abs(b.finalScore - a.finalScore) > 1e-9) return b.finalScore - a.finalScore;
+      if (Math.abs(b.coreScore  - a.coreScore)  > 1e-9) return b.coreScore  - a.coreScore;
+      if (Math.abs(b.secondaryScore - a.secondaryScore) > 1e-9) return b.secondaryScore - a.secondaryScore;
+      return a.name.localeCompare(b.name);
     })
-    .map((item, index) => ({ ...item, rank: index + 1 }));
+    .map((alt, idx) => ({ ...alt, rank: idx + 1 }));
 }
 
-function createScoreOptions(selectedValue) {
-  return scoreValues
-    .map((value) => `<option value="${value}" ${Number(selectedValue) === value ? "selected" : ""}>${value}</option>`)
+/* ============================================================
+   RENDER — Slider Controls
+   ============================================================ */
+
+function renderSliders() {
+  const container = $("#sliders-container");
+  if (!container) return;
+
+  container.innerHTML = criteria
+    .map((criterion) => {
+      const w = criterionWeights[criterion.id] ?? 0;
+      const factorLabel = criterion.factor === "core" ? "CF" : "SF";
+      return `
+        <div class="slider-item">
+          <div class="slider-label-row">
+            <span class="slider-criterion-name">
+              ${criterion.id} <span class="slider-factor-badge ${criterion.factor}">${factorLabel}</span> — ${escapeHTML(criterion.name)}
+            </span>
+            <span class="slider-pct" id="pct-${criterion.id}">${w}</span>
+          </div>
+          <input
+            type="range"
+            class="sim-slider"
+            id="slider-${criterion.id}"
+            min="1"
+            max="5"
+            step="1"
+            value="${w}"
+            data-criterion="${criterion.id}"
+            aria-label="Prioritas ${criterion.id} skala 1 sampai 5"
+          />
+        </div>
+      `;
+    })
     .join("");
+
+  container.querySelectorAll(".sim-slider").forEach((slider) => {
+    slider.addEventListener("input", handleSliderChange);
+  });
 }
 
-function createAlternativeScoreCell(alternative, criterion) {
-  return `
-    <td>
-      <select class="score-select" data-action="score" data-id="${alternative.id}" data-criterion="${criterion.id}" aria-label="${criterion.name} untuk ${alternative.name}">
-        ${createScoreOptions(alternative.scores[criterion.id])}
-      </select>
-    </td>
-  `;
+function handleSliderChange(event) {
+  const cid = event.target.dataset.criterion;
+  criterionWeights[cid] = Number(event.target.value);
+
+  const pctEl = $(`#pct-${cid}`);
+  if (pctEl) pctEl.textContent = criterionWeights[cid];
+
+  renderRanking();   /* update real-time */
 }
 
-function createAlternativeRow(alternative) {
-  const scoreCells = criteria.map((criterion) => createAlternativeScoreCell(alternative, criterion)).join("");
-
-  return `
-    <tr>
-      <td class="code-cell">${alternative.id}</td>
-      <td>
-        <input class="name-input" data-action="name" data-id="${alternative.id}" value="${escapeHTML(alternative.name)}" aria-label="Nama ${alternative.id}" />
-      </td>
-      ${scoreCells}
-      <td>
-        <button class="icon-btn" data-action="delete" data-id="${alternative.id}" title="Hapus ${escapeHTML(alternative.name)}">Hapus</button>
-      </td>
-    </tr>
-  `;
-}
-
-function createRankingRow(item) {
-  const percentage = Math.min(100, (item.finalScore / 5) * 100);
-
-  return `
-    <tr data-id="${item.id}" class="${item.id === selectedAlternativeId ? "active" : ""}">
-      <td><span class="rank-number">${item.rank}</span></td>
-      <td><strong>${escapeHTML(item.name)}</strong><br><span class="muted">${item.id}</span></td>
-      <td>${formatNumber(item.coreScore)}</td>
-      <td>${formatNumber(item.secondaryScore)}</td>
-      <td class="final-score">${formatNumber(item.finalScore)}</td>
-      <td><div class="bar" aria-hidden="true"><div class="bar-fill" style="--bar:${percentage}%"></div></div></td>
-    </tr>
-  `;
-}
-
-function createDetailRow(detail) {
-  return `
-    <tr>
-      <td><strong>${detail.id}</strong><br><span class="muted">${detail.factor === "core" ? "CF" : "SF"}</span></td>
-      <td>${detail.score}</td>
-      <td>${detail.gap > 0 ? "+" : ""}${detail.gap}</td>
-      <td>${detail.gapWeight}</td>
-    </tr>
-  `;
-}
+/* ============================================================
+   RENDER — Kriteria Cards
+   ============================================================ */
 
 function renderCriteria() {
   const container = $("#criteria-list");
-  container.innerHTML = criteria
-    .map((criterion) => `
-      <article class="criteria-card">
-        <div class="criteria-top">
-          <div class="criteria-title">
-            <span class="badge">${criterion.id}</span>
-            <span>${criterion.name}</span>
-          </div>
-          <span class="badge ${criterion.factor}">${criterion.factor === "core" ? "Core" : "Secondary"}</span>
-        </div>
-        <p>${criterion.type} - Bobot kriteria ${criterion.criterionWeight}% - Ideal ${criterion.ideal}</p>
-        <p>${criterion.note}</p>
-      </article>
-    `)
-    .join("");
-}
+  if (!container) return;
 
-function renderSurveySummary() {
-  const container = $("#survey-list");
-  container.innerHTML = surveySummary
-    .map((item) => {
-      const width = Math.min(100, (item.average / 5) * 100);
+  container.innerHTML = criteria
+    .map((criterion) => {
+      const factorLabel =
+        criterion.factor === "core" ? "Core Factor" : "Secondary Factor";
+
       return `
-        <article class="survey-item">
-          <div class="survey-top">
-            <strong>${item.id} - ${item.label}</strong>
-            <span class="badge">${formatNumber(item.average)}</span>
+        <article class="criteria-card">
+          <div class="criteria-top">
+            <div class="criteria-title">
+              <span class="badge">${criterion.id}</span>
+              <span>${escapeHTML(criterion.name)}</span>
+            </div>
+            <span class="badge ${criterion.factor}">${factorLabel}</span>
           </div>
-          <div class="bar" aria-hidden="true"><div class="bar-fill" style="--bar:${width}%"></div></div>
-          <p>Rata-rata ${formatNumber(item.average)} dari 5 - Modus ${item.dominant}</p>
+          <p>${criterion.type} · Profil Ideal ${criterion.ideal}</p>
+          <p>${escapeHTML(criterion.note)}</p>
         </article>
       `;
     })
     .join("");
 }
 
-function renderGapGrid() {
-  $("#gap-grid").innerHTML = orderedGaps
-    .map((gap) => `
-      <div class="gap-item">
-        <strong>${gap > 0 ? "+" : ""}${gap}</strong>
-        <span>Bobot ${gapWeights[String(gap)]}</span>
-      </div>
-    `)
+/* ============================================================
+   RENDER — Survei
+   ============================================================ */
+
+function renderSurveySummary() {
+  const container = $("#survey-list");
+  if (!container) return;
+
+  container.innerHTML = surveySummary
+    .map((item) => {
+      const pct = item.percentage;
+      return `
+        <article class="survey-item">
+          <div class="survey-top">
+            <strong>${item.id} - ${escapeHTML(item.label)}</strong>
+            <span class="badge">${pct}%</span>
+          </div>
+          <div class="bar" aria-label="Persentase ${pct}%">
+            <div class="bar-fill" style="--bar:${pct}%"></div>
+          </div>
+          <p>Rata-rata ${formatNumber(item.average)} dari ${item.total} responden. Nilai dominan adalah ${item.dominant}.</p>
+        </article>
+      `;
+    })
     .join("");
 }
 
-function renderAlternativeTable() {
-  const body = $("#alternative-body");
-  body.innerHTML = alternatives.map(createAlternativeRow).join("");
+/* ============================================================
+   RENDER — Tabel Konversi GAP
+   ============================================================ */
+
+function renderGapGrid() {
+  const container = $("#gap-grid");
+  if (!container) return;
+
+  container.innerHTML = orderedGaps
+    .map((gap) => {
+      const label = gap > 0 ? `+${gap}` : gap;
+      return `
+        <div class="gap-item">
+          <strong>${label}</strong>
+          <span>Bobot ${gapWeights[String(gap)]}</span>
+        </div>
+      `;
+    })
+    .join("");
 }
 
-function renderRanking() {
-  const rankings = calculateRankings();
-  if (!selectedAlternativeId || !rankings.some((item) => item.id === selectedAlternativeId)) {
-    selectedAlternativeId = rankings[0]?.id ?? null;
-  }
+/* ============================================================
+   RENDER — Simulator Result Item
+   ============================================================ */
 
-  const body = $("#ranking-body");
-  body.innerHTML = rankings.map(createRankingRow).join("");
+function createSimResultItem(item, index) {
+  const roman      = ROMAN[index] ?? String(index + 1);
+  const percentage = Math.min(100, (item.finalScore / 5) * 100);
+  const isActive   = item.id === selectedAlternativeId;
 
-  renderTopRecommendation(rankings[0]);
-  renderDetail(rankings.find((item) => item.id === selectedAlternativeId) || rankings[0]);
-}
-
-function renderTopRecommendation(top) {
-  if (!top) {
-    $("#top-name").textContent = "-";
-    $("#top-score").textContent = "0.00";
-    $("#top-summary").textContent = "Belum ada data laundry.";
-    return;
-  }
-  $("#top-name").textContent = top.name;
-  $("#top-score").textContent = formatNumber(top.finalScore);
-  $("#top-summary").textContent = `${top.name} menjadi rekomendasi terbaik karena memperoleh NCF ${formatNumber(top.coreScore)} dan NSF ${formatNumber(top.secondaryScore)}.`;
-}
-
-function renderDetail(item) {
-  if (!item) {
-    $("#detail-title").textContent = "Pilih alternatif";
-    $("#detail-score").textContent = "-";
-    $("#detail-table").innerHTML = "";
-    return;
-  }
-
-  $("#detail-title").textContent = `${item.rank}. ${item.name}`;
-  $("#detail-score").textContent = `Nilai akhir ${formatNumber(item.finalScore)} - NCF ${formatNumber(item.coreScore)} - NSF ${formatNumber(item.secondaryScore)}`;
-
-  $("#detail-table").innerHTML = `
-    <table>
-      <thead>
-        <tr>
-          <th>Kode</th>
-          <th>Nilai</th>
-          <th>GAP</th>
-          <th>Bobot</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${item.details.map(createDetailRow).join("")}
-      </tbody>
-    </table>
+  return `
+    <div
+      class="sim-result-item ${isActive ? "active" : ""}"
+      data-id="${item.id}"
+      tabindex="0"
+      role="listitem button"
+      aria-label="${escapeHTML(item.name)}, nilai ${formatNumber(item.finalScore)}"
+    >
+      <span class="sim-rank-roman">${roman}</span>
+      <div class="sim-result-info">
+        <span class="sim-result-name">${escapeHTML(item.name)}</span>
+        <span class="sim-result-id">${item.id}</span>
+      </div>
+      <div class="sim-result-right">
+        <span class="sim-result-score">${formatNumber(item.finalScore)}</span>
+        <div class="sim-result-bar-wrap">
+          <div class="sim-result-bar" style="width:${percentage}%"></div>
+        </div>
+      </div>
+    </div>
   `;
 }
 
-function showToast(message) {
-  const toast = $("#toast");
-  toast.textContent = message;
-  toast.classList.add("show");
-  window.clearTimeout(showToast.timeoutId);
-  showToast.timeoutId = window.setTimeout(() => toast.classList.remove("show"), 2600);
+/* ============================================================
+   RENDER — Full Ranking
+   ============================================================ */
+
+function renderRanking() {
+  const rankings    = calculateRankings();
+  const rankingBody = $("#ranking-body");
+
+  /* Auto-select top jika seleksi tidak valid */
+  if (
+    !selectedAlternativeId ||
+    !rankings.some(item => item.id === selectedAlternativeId)
+  ) {
+    selectedAlternativeId = rankings[0]?.id ?? null;
+  }
+
+  if (rankingBody) {
+    rankingBody.innerHTML = rankings
+      .map((item, idx) => createSimResultItem(item, idx))
+      .join("");
+  }
+
+  renderTopRecommendation(rankings[0]);
 }
 
-function addAlternative() {
-  const input = $("#new-laundry-name");
-  const name = input.value.trim();
-  if (!name) {
-    showToast("Nama laundry belum diisi.");
-    input.focus();
+/* ============================================================
+   RENDER — Hero top recommendation
+   ============================================================ */
+
+function renderTopRecommendation(top) {
+  const nameEl    = $("#top-name");
+  const scoreEl   = $("#top-score");
+  const summaryEl = $("#top-summary");
+  if (!nameEl || !scoreEl || !summaryEl) return;
+
+  if (!top) {
+    nameEl.textContent    = "-";
+    scoreEl.textContent   = "0.00";
+    summaryEl.textContent = "Belum tersedia data alternatif.";
     return;
   }
 
-  const nextNumber = alternatives.reduce((max, item) => {
-    const number = Number(String(item.id).replace(/\D/g, ""));
-    return Number.isFinite(number) ? Math.max(max, number) : max;
-  }, 0) + 1;
-
-  const scores = Object.fromEntries(criteria.map((criterion) => [criterion.id, 3]));
-  alternatives.push({ id: `A${nextNumber}`, name, scores });
-  input.value = "";
-  refreshAlternativeViews({ includeTable: true });
-  showToast(`${name} berhasil ditambahkan.`);
+  nameEl.textContent  = top.name;
+  scoreEl.textContent = formatNumber(top.finalScore);
+  summaryEl.textContent =
+    `${top.name} menjadi rekomendasi terbaik ` +
+    `dengan NCF ${formatNumber(top.coreScore)}, ` +
+    `NSF ${formatNumber(top.secondaryScore)}, ` +
+    `dan nilai akhir ${formatNumber(top.finalScore)}.`;
 }
 
-function resetData() {
-  const isConfirmed = window.confirm("Reset semua data ke data awal?");
-  if (!isConfirmed) return;
-  alternatives = structuredClone(defaultAlternatives);
-  selectedAlternativeId = null;
-  refreshAlternativeViews({ includeTable: true });
-  showToast("Data berhasil dikembalikan ke default.");
+/* ============================================================
+   TOAST
+   ============================================================ */
+
+function showToast(message) {
+  const toast = $("#toast");
+  if (!toast) return;
+  toast.textContent = message;
+  toast.classList.add("show");
+  clearTimeout(showToast._tid);
+  showToast._tid = setTimeout(
+    () => toast.classList.remove("show"),
+    2800
+  );
 }
+
+/* ============================================================
+   EXPORT CSV — lengkap dengan semua kolom
+   ============================================================ */
 
 function exportRankingCSV() {
   const rankings = calculateRankings();
-  const header = ["Rank", "Kode", "Nama", "NCF", "NSF", "Nilai Akhir", ...criteria.map((item) => item.id)];
-  const rows = rankings.map((item) => [
-    item.rank,
-    item.id,
-    item.name,
-    formatNumber(item.coreScore),
-    formatNumber(item.secondaryScore),
-    formatNumber(item.finalScore),
-    ...criteria.map((criterion) => item.scores[criterion.id])
+
+  /* Header */
+  const criteriaHeaders = criteria.flatMap(c => [
+    `${c.id} Nilai`, `${c.id} Ideal`, `${c.id} GAP`,
+    `${c.id} Bobot GAP`, `${c.id} Prioritas (1-5)`,
+    `${c.id} Bobot Relatif (%)`, `${c.id} Kontribusi`
   ]);
+  const header = [
+    "Ranking", "Kode", "Alternatif", "NCF", "NSF", "Nilai Akhir",
+    ...criteriaHeaders
+  ];
+
+  const rows = rankings.map((item) => {
+    const detailCols = criteria.flatMap(c => {
+      const d = item.details.find(dd => dd.id === c.id);
+      if (!d) return ["", "", "", "", "", "", ""];
+      return [
+        d.score,
+        d.ideal,
+        d.gap,
+        d.gapWeight,
+        d.rawWeight,
+        (d.normalizedWeight * 100).toFixed(1),
+        formatNumber(d.contribution)
+      ];
+    });
+
+    return [
+      item.rank,
+      item.id,
+      item.name,
+      formatNumber(item.coreScore),
+      formatNumber(item.secondaryScore),
+      formatNumber(item.finalScore),
+      ...detailCols
+    ];
+  });
 
   const csv = [header, ...rows]
-    .map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(","))
+    .map(row =>
+      row.map(cell => `"${String(cell).replaceAll('"', '""')}"`).join(",")
+    )
     .join("\n");
 
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
+  const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+  const url  = URL.createObjectURL(blob);
   const link = document.createElement("a");
-  link.href = url;
-  link.download = "hasil-ranking-spk-laundry.csv";
+  link.href     = url;
+  link.download = "hasil-ranking-profile-matching.csv";
   document.body.appendChild(link);
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
-  showToast("File CSV ranking berhasil dibuat.");
+
+  showToast("Hasil ranking berhasil diekspor ke CSV.");
 }
 
-function updateAlternativeScore(target, alternative) {
-  alternative.scores[target.dataset.criterion] = Number(target.value);
-  refreshAlternativeViews();
+/* ============================================================
+   HAMBURGER MENU
+   ============================================================ */
+
+function initializeHamburger() {
+  const hamburger  = $("#hamburger");
+  const navActions = $("#nav-actions");
+  if (!hamburger || !navActions) return;
+
+  hamburger.addEventListener("click", () => {
+    const isOpen = hamburger.classList.toggle("open");
+    navActions.classList.toggle("open", isOpen);
+    hamburger.setAttribute("aria-expanded", String(isOpen));
+  });
+
+  navActions.querySelectorAll("a").forEach((link) => {
+    link.addEventListener("click", () => {
+      hamburger.classList.remove("open");
+      navActions.classList.remove("open");
+      hamburger.setAttribute("aria-expanded", "false");
+    });
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!hamburger.contains(event.target) && !navActions.contains(event.target)) {
+      hamburger.classList.remove("open");
+      navActions.classList.remove("open");
+      hamburger.setAttribute("aria-expanded", "false");
+    }
+  });
 }
 
-function updateAlternativeName(target, alternative) {
-  alternative.name = target.value.trim() || alternative.id;
-  refreshAlternativeViews();
+/* ============================================================
+   RANKING EVENTS (click / keyboard)
+   ============================================================ */
+
+function initializeRankingEvents() {
+  const rankingBody = $("#ranking-body");
+  if (!rankingBody) return;
+
+  function selectItem(target) {
+    const item = target.closest(".sim-result-item[data-id]");
+    if (!item) return;
+    selectedAlternativeId = item.dataset.id;
+    renderRanking();
+  }
+
+  rankingBody.addEventListener("click",   (e) => selectItem(e.target));
+  rankingBody.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    e.preventDefault();
+    selectItem(e.target);
+  });
 }
 
-function deleteAlternative(id) {
-  alternatives = alternatives.filter((item) => item.id !== id);
-  if (selectedAlternativeId === id) selectedAlternativeId = null;
-  refreshAlternativeViews({ includeTable: true });
-  showToast("Alternatif berhasil dihapus.");
-}
+/* ============================================================
+   INITIALISE
+   ============================================================ */
 
-function handleAlternativeTableEvent(event) {
-  const { action, id } = event.target.dataset;
-  if (!action || !id) return;
-
-  const alternative = findAlternative(id);
-  if (!alternative) return;
-
-  if (action === "score") updateAlternativeScore(event.target, alternative);
-  if (action === "name") updateAlternativeName(event.target, alternative);
-  if (action === "delete") deleteAlternative(id);
-}
-
-function handleRankingClick(event) {
-  const row = event.target.closest("tr[data-id]");
-  if (!row) return;
-  selectedAlternativeId = row.dataset.id;
-  renderRanking();
-}
-
-function init() {
+function initializeApplication() {
   renderCriteria();
   renderSurveySummary();
   renderGapGrid();
-  renderAlternativeTable();
+  renderSliders();
   renderRanking();
-  saveAlternatives();
+  initializeHamburger();
+  initializeRankingEvents();
 
-  $("#btn-calculate").addEventListener("click", () => {
-    renderRanking();
-    showToast("Ranking sudah dihitung ulang.");
-    $("#hasil-ranking").scrollIntoView({ behavior: "smooth" });
-  });
-  $("#btn-reset").addEventListener("click", resetData);
-  $("#btn-add").addEventListener("click", addAlternative);
-  $("#btn-export").addEventListener("click", exportRankingCSV);
-  $("#new-laundry-name").addEventListener("keydown", (event) => {
-    if (event.key === "Enter") addAlternative();
-  });
-  $("#alternative-body").addEventListener("change", handleAlternativeTableEvent);
-  $("#alternative-body").addEventListener("input", handleAlternativeTableEvent);
-  $("#alternative-body").addEventListener("click", handleAlternativeTableEvent);
-  $("#ranking-body").addEventListener("click", handleRankingClick);
+  /* Stat counter */
+  const statEl = $("#stat-alternatives");
+  if (statEl) statEl.textContent = alternatives.length;
 
-  // Hamburger menu toggle
-  const hamburger = $("#hamburger");
-  const navActions = $("#nav-actions");
-  if (hamburger && navActions) {
-    hamburger.addEventListener("click", () => {
-      const isOpen = hamburger.classList.toggle("open");
-      navActions.classList.toggle("open", isOpen);
-      hamburger.setAttribute("aria-expanded", String(isOpen));
-    });
-    // Close menu on nav link click
-    navActions.querySelectorAll("a").forEach((link) => {
-      link.addEventListener("click", () => {
-        hamburger.classList.remove("open");
-        navActions.classList.remove("open");
-        hamburger.setAttribute("aria-expanded", "false");
-      });
-    });
-    // Close on outside click
-    document.addEventListener("click", (e) => {
-      if (!hamburger.contains(e.target) && !navActions.contains(e.target)) {
-        hamburger.classList.remove("open");
-        navActions.classList.remove("open");
-        hamburger.setAttribute("aria-expanded", "false");
-      }
+  /* Hitung Ulang button */
+  const calcBtn = $("#btn-calculate");
+  if (calcBtn) {
+    calcBtn.addEventListener("click", () => {
+      renderRanking();
+      showToast("Perhitungan Profile Matching berhasil dilakukan.");
+      $("#hasil-ranking")?.scrollIntoView({ behavior: "smooth" });
     });
   }
+
+  /* Reset ke bobot awal */
+  const resetBobotBtn = $("#btn-reset-bobot");
+  if (resetBobotBtn) {
+    resetBobotBtn.addEventListener("click", () => {
+      criterionWeights = { ...DEFAULT_WEIGHTS };
+      renderSliders();
+      renderRanking();
+      showToast("Prioritas dikembalikan ke nilai tengah skala 1-5.");
+    });
+  }
+
+  /* Export CSV */
+  const exportBtn = $("#btn-export");
+  if (exportBtn) {
+    exportBtn.addEventListener("click", exportRankingCSV);
+  }
+
+  /* Reset tampilan */
+  const resetBtn = $("#btn-reset");
+  if (resetBtn) {
+    resetBtn.addEventListener("click", () => {
+      criterionWeights      = { ...DEFAULT_WEIGHTS };
+      selectedAlternativeId = null;
+      renderSliders();
+      renderRanking();
+      showToast("Tampilan berhasil direset.");
+    });
+  }
+
+  /* Console acceptance test */
+  const testResults = calculateRankings();
+  console.group("[SPK Profile Matching] Acceptance Test — Default Weights");
+  console.table(
+    testResults.map(item => ({
+      Ranking:     item.rank,
+      Alternatif:  item.name,
+      NCF:         formatNumber(item.coreScore),
+      NSF:         formatNumber(item.secondaryScore),
+      "Nilai Akhir": formatNumber(item.finalScore)
+    }))
+  );
+
+  /* Expected results */
+  const expected = [
+    { id: "A3", ncf: 4.67, nsf: 4.00, final: 4.40 },
+    { id: "A5", ncf: 4.00, nsf: 4.00, final: 4.00 },
+    { id: "A1", ncf: 4.00, nsf: 3.50, final: 3.80 },
+    { id: "A2", ncf: 3.33, nsf: 3.50, final: 3.40 },
+    { id: "A4", ncf: 3.33, nsf: 2.50, final: 3.00 }
+  ];
+
+  const TOLERANCE = 0.01;
+  let allPassed = true;
+  expected.forEach((exp, idx) => {
+    const actual = testResults[idx];
+    const ok =
+      actual &&
+      actual.id === exp.id &&
+      Math.abs(actual.coreScore      - exp.ncf)   <= TOLERANCE &&
+      Math.abs(actual.secondaryScore - exp.nsf)   <= TOLERANCE &&
+      Math.abs(actual.finalScore     - exp.final) <= TOLERANCE;
+    if (!ok) {
+      allPassed = false;
+      console.warn(
+        `GAGAL rank ${idx + 1}: expected ${exp.id} ncf=${exp.ncf} nsf=${exp.nsf} final=${exp.final},` +
+        ` actual ${actual?.id} ncf=${formatNumber(actual?.coreScore)} nsf=${formatNumber(actual?.secondaryScore)} final=${formatNumber(actual?.finalScore)}`
+      );
+    }
+  });
+
+  if (allPassed) {
+    console.log("%c✓ Semua acceptance test LULUS.", "color:green;font-weight:bold");
+  } else {
+    console.error("✗ Ada acceptance test yang GAGAL. Periksa data dan logika perhitungan.");
+  }
+  console.groupEnd();
 }
 
-init();
+/* ============================================================
+   BOOT
+   ============================================================ */
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initializeApplication);
+} else {
+  initializeApplication();
+}

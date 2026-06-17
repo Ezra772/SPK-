@@ -5,10 +5,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SPK Penentuan Tempat Laundry - Profile Matching</title>
+  <meta name="description" content="Sistem Pendukung Keputusan pemilihan tempat laundry terbaik menggunakan metode Profile Matching dengan simulasi bobot interaktif." />
   <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
+  <!-- ========================================================
+       NAVBAR
+       ======================================================== -->
   <nav class="navbar" aria-label="Navigasi utama">
     <div class="brand">
       <span class="brand-mark">SPK</span>
@@ -16,26 +20,30 @@
     </div>
     <div class="nav-actions" id="nav-actions">
       <a href="#metode">Metode</a>
-      <a href="#input-data">Input Data</a>
-      <a href="#hasil-ranking">Ranking</a>
+      <a href="#input-data">Kriteria</a>
+      <a href="#hasil-ranking">Simulator</a>
     </div>
-    <button class="hamburger" id="hamburger" aria-label="Buka menu navigasi" aria-expanded="false"
-      aria-controls="nav-actions">
+    <button class="hamburger" id="hamburger" aria-label="Buka menu navigasi"
+      aria-expanded="false" aria-controls="nav-actions">
       <span></span><span></span><span></span>
     </button>
   </nav>
 
+  <!-- ========================================================
+       HERO
+       ======================================================== -->
   <header class="hero">
     <section class="hero-grid">
       <div class="hero-copy">
         <p class="pill">Profile Matching</p>
         <h2>Rekomendasi Laundry Terbaik, <span>Terukur</span> untuk Mahasiswa</h2>
         <p>
-          Aplikasi ini membandingkan setiap laundry dengan profil ideal, menghitung GAP, Core Factor,
-          Secondary Factor, dan ranking akhir secara otomatis.
+          Aplikasi ini membandingkan setiap laundry dengan profil ideal, menghitung GAP,
+          Core Factor, Secondary Factor, dan ranking akhir secara otomatis.
+          Atur bobot sendiri dengan simulator interaktif.
         </p>
         <div class="cta-row">
-          <a href="#hasil-ranking" class="btn primary">Lihat Ranking</a>
+          <a href="#hasil-ranking" class="btn primary">Buka Simulator</a>
           <button id="btn-reset" class="btn ghost">Reset Data</button>
         </div>
       </div>
@@ -46,7 +54,7 @@
           <div class="panel-content">
             <p class="panel-label">Rekomendasi Teratas</p>
             <h3 id="top-name">-</h3>
-            <p id="top-summary">Klik Hitung Ranking untuk melihat hasil.</p>
+            <p id="top-summary">Klik Hitung Ulang untuk melihat hasil.</p>
           </div>
           <div class="score-ring" aria-label="Nilai rekomendasi teratas">
             <span id="top-score">0.00</span>
@@ -57,7 +65,12 @@
     </section>
   </header>
 
+  <!-- ========================================================
+       MAIN CONTENT
+       ======================================================== -->
   <main class="container">
+
+    <!-- Stats -->
     <section class="stats-grid" aria-label="Statistik aplikasi">
       <article class="stat-card">
         <span id="stat-alternatives">5</span>
@@ -77,6 +90,7 @@
       </article>
     </section>
 
+    <!-- Metode -->
     <section id="metode" class="section-card">
       <div class="section-heading">
         <p class="eyebrow">Dasar Perhitungan</p>
@@ -86,31 +100,32 @@
         <article>
           <span>01</span>
           <h3>Hitung GAP</h3>
-          <p>GAP = nilai alternatif - nilai ideal. Profil ideal semua kriteria bernilai 5.</p>
+          <p>GAP = nilai alternatif − nilai ideal. Profil ideal semua kriteria bernilai 5.</p>
         </article>
         <article>
           <span>02</span>
           <h3>Konversi Bobot GAP</h3>
-          <p>Setiap GAP diubah menjadi bobot, misalnya GAP 0 bernilai 5 dan GAP -1 bernilai 4.</p>
+          <p>Setiap GAP diubah menjadi bobot, misalnya GAP 0 bernilai 5 dan GAP −1 bernilai 4.</p>
         </article>
         <article>
           <span>03</span>
-          <h3>Hitung CF & SF</h3>
-          <p>Core Factor berisi C2, C3, C5. Secondary Factor berisi C1, C6.</p>
+          <h3>Hitung CF &amp; SF</h3>
+          <p>Core Factor berisi C1, C2, C5. Secondary Factor berisi C3, C4.</p>
         </article>
         <article>
           <span>04</span>
           <h3>Ranking</h3>
-          <p>Nilai akhir = 60% Core Factor + 40% Secondary Factor, lalu diurutkan dari tertinggi.</p>
+          <p>Nilai akhir = (60% × NCF) + (40% × NSF). Diurutkan dari nilai akhir tertinggi.</p>
         </article>
       </div>
     </section>
 
-    <section class="grid-2">
+    <!-- Kriteria & Survei -->
+    <section class="grid-2" id="input-data">
       <article class="section-card">
         <div class="section-heading compact">
           <p class="eyebrow">Kriteria</p>
-          <h2>Core Factor & Secondary Factor</h2>
+          <h2>Core Factor &amp; Secondary Factor</h2>
         </div>
         <div id="criteria-list" class="criteria-list"></div>
       </article>
@@ -118,99 +133,76 @@
       <article class="section-card">
         <div class="section-heading compact">
           <p class="eyebrow">Kuisioner</p>
-          <h2>Rata-rata Preferensi Responden</h2>
+          <h2>Rata-rata Penilaian Responden</h2>
+          <p class="muted" style="font-size:13px;margin-top:8px">
+            Kriteria <em>cost</em> (harga, tingkat kerusakan) sudah dikonversi ke skala 1–5
+            dengan prinsip: semakin baik kondisi alternatif, semakin tinggi nilainya.
+            Seluruh nilai dapat dibandingkan langsung dengan profil ideal 5.
+          </p>
         </div>
         <div id="survey-list" class="survey-list"></div>
       </article>
     </section>
 
-    <section id="input-data" class="section-card">
-      <div class="section-heading with-actions">
-        <div>
-          <p class="eyebrow">Input Alternatif</p>
-          <h2>Data Nilai Laundry</h2>
-          <p class="muted">Nilai 1-5 mengikuti skala pada laporan. Nilai 5 berarti paling mendekati kondisi ideal.</p>
+    <!-- ======================================================
+         SIMULATOR BOBOT — Hasil Ranking
+         ====================================================== -->
+    <section id="hasil-ranking" class="section-card">
+
+      <!-- Centered header (like Simulator Bobot) -->
+      <div class="sim-page-header">
+        <div class="sim-title-pill">Interaktif</div>
+        <h2 class="sim-main-title">Simulator <span>Bobot</span> Laundry</h2>
+        <p class="sim-subtitle">
+          Atur bobot kriteria sesuai preferensimu — ranking berubah secara real-time!
+        </p>
+        <div class="sim-divider"></div>
+      </div>
+
+      <!-- Two-column simulator layout -->
+      <div class="sim-layout">
+
+        <!-- LEFT: Slider controls -->
+        <div class="sim-left">
+          <div class="sim-panel-header">
+            <h3>Atur Bobot Kriteria</h3>
+          </div>
+          <p class="sim-hint">
+            Gunakan prioritas 1–5. Nilai dinormalisasi secara terpisah:
+            C1, C2, C5 untuk <strong>Core Factor</strong>;
+            C3, C4 untuk <strong>Secondary Factor</strong>.
+          </p>
+
+          <!-- Sliders rendered by JS -->
+          <div class="slider-group" id="sliders-container"></div>
+
+          <button class="btn-sim-reset" id="btn-reset-bobot">↺ Reset ke Bobot Awal</button>
+          <button class="btn-sim-calc" id="btn-calculate">Hitung Ulang</button>
         </div>
-        <div class="add-box">
-          <label for="new-laundry-name">Tambah laundry</label>
-          <div class="add-row">
-            <input id="new-laundry-name" type="text" placeholder="Nama laundry baru" />
-            <button id="btn-add" class="btn secondary">Tambah</button>
+
+        <!-- RIGHT: Ranking results -->
+        <div class="sim-right">
+          <div class="sim-panel-header">
+            <h3>Hasil Simulasi</h3>
+          </div>
+
+          <!-- Result items rendered by JS -->
+          <div id="ranking-body" class="sim-results" role="list"></div>
+
+          <div class="sim-export-row">
+            <button id="btn-export" class="btn ghost">↓ Export Hasil CSV</button>
           </div>
         </div>
       </div>
 
-      <div class="table-wrap">
-        <table class="data-table" aria-label="Tabel input nilai alternatif laundry">
-          <thead>
-            <tr>
-              <th>Kode</th>
-              <th>Nama Laundry</th>
-              <th>C1 Harga</th>
-              <th>C2 Cepat</th>
-              <th>C3 Kualitas</th>
-              <th>C5 Pelayanan</th>
-              <th>C6 Kesalahan</th>
-              <th>Aksi</th>
-            </tr>
-          </thead>
-          <tbody id="alternative-body"></tbody>
-        </table>
-      </div>
     </section>
 
-    <section id="hasil-ranking" class="section-card">
-      <div class="section-heading with-actions">
-        <div>
-          <p class="eyebrow">Hasil Keputusan</p>
-          <h2>Ranking Rekomendasi Laundry</h2>
-          <p class="muted">Klik salah satu baris ranking untuk melihat rincian perhitungan GAP.</p>
-        </div>
-        <div class="heading-actions">
-          <button id="btn-calculate" class="btn primary">Hitung Ranking</button>
-          <button id="btn-export" class="btn ghost">Export Hasil CSV</button>
-        </div>
-      </div>
-
-      <div class="ranking-layout">
-        <div class="table-wrap ranking-table-wrap">
-          <table class="data-table ranking-table" aria-label="Tabel hasil ranking laundry">
-            <thead>
-              <tr>
-                <th>Rank</th>
-                <th>Alternatif</th>
-                <th>NCF</th>
-                <th>NSF</th>
-                <th>Nilai Akhir</th>
-                <th>Visual</th>
-              </tr>
-            </thead>
-            <tbody id="ranking-body"></tbody>
-          </table>
-        </div>
-
-        <aside class="detail-card" aria-label="Detail perhitungan alternatif terpilih">
-          <p class="eyebrow">Detail GAP</p>
-          <h3 id="detail-title">Pilih alternatif</h3>
-          <p id="detail-score" class="detail-score">-</p>
-          <div id="detail-table" class="detail-table"></div>
-        </aside>
-      </div>
-    </section>
-
-    <section class="section-card">
-      <div class="section-heading compact">
-        <p class="eyebrow">Referensi Bobot</p>
-        <h2>Tabel Konversi GAP</h2>
-      </div>
-      <div class="gap-grid" id="gap-grid"></div>
-    </section>
   </main>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <footer class="footer">
-    <p>SPK Laundry Profile Matching - HTML, CSS, JavaScript Vanilla.</p>
+    <p>SPK Laundry Profile Matching · HTML, CSS, JavaScript Vanilla</p>
   </footer>
 
   <script src="script.js"></script>
