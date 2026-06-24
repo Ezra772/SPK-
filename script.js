@@ -443,7 +443,7 @@ function renderSurveySummary() {
           <div class="bar" aria-label="Persentase ${pct}%">
             <div class="bar-fill" style="--bar:${pct}%"></div>
           </div>
-          <p>Rata-rata ${formatNumber(item.average)} dari ${item.total} responden. Nilai dominan adalah ${item.dominant}.</p>
+          <p>Berdasarkan ${item.total} responden, nilai rata-rata adalah ${formatNumber(item.average)} dengan skor dominan ${item.dominant}</p>
         </article>
       `;
     })
@@ -730,18 +730,6 @@ function initializeApplication() {
   const exportBtn = $("#btn-export");
   if (exportBtn) {
     exportBtn.addEventListener("click", exportRankingCSV);
-  }
-
-  /* Reset tampilan */
-  const resetBtn = $("#btn-reset");
-  if (resetBtn) {
-    resetBtn.addEventListener("click", () => {
-      criterionWeights      = { ...DEFAULT_WEIGHTS };
-      selectedAlternativeId = null;
-      renderSliders();
-      renderRanking();
-      showToast("Tampilan berhasil direset.");
-    });
   }
 
   /* Console acceptance test */
